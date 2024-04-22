@@ -17,7 +17,7 @@ type location struct {
 	} `json:"results"`
 }
 
-func getLocation(url string) (location, error) {
+func GetLocation(url string) (location, error) {
 	res, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	pokeApi "github.com/djmarkymark007/gopdex/internal/PokeApi"
 )
 
 type cliCommand struct {
@@ -33,28 +35,36 @@ func commandExit(_ *configCommand) error {
 }
 
 func commandMap(config *configCommand) error {
-	data, err := pokeApi.location(config.Next)
-	if err != nil {
+	if config.Next != nil {
 		fmt.Println("No more maps")
+		return nil
+	}
+	data, err := pokeApi.GetLocation(*config.Next)
+	if err != nil {
+		fmt.Println("failed to get maps")
 		return err
 	}
 	config.Next = data.Next
 	config.Prevs = data.Previous
-	for loc := range data.Results {
+	for _, loc := range data.Results {
 		fmt.Println(loc.Name)
 	}
 	return nil
 }
 
 func commandMapB(config *configCommand) error {
-	data, err := pokeApi.location(config.Prevs)
-	if err != nil {
+	if config.Prevs == nil {
 		fmt.Println("No prevs maps")
+		return nil
+	}
+	data, err := pokeApi.GetLocation(*config.Prevs)
+	if err != nil {
+		fmt.Println("failed to get maps")
 		return err
 	}
 	config.Next = data.Next
 	config.Prevs = data.Previous
-	for loc := range data.Results {
+	for _, loc := range data.Results {
 		fmt.Println(loc.Name)
 	}
 	return nil
