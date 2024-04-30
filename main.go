@@ -83,13 +83,13 @@ func commandMapB(config *configCommand, _ []string) error {
 	return nil
 }
 
-func commandExpore(config *configCommand, area_name []string) error {
-	if len(area_name) != 1 {
+func commandExpore(config *configCommand, args []string) error {
+	if len(args) != 1 {
 		fmt.Print("Explore has only one arg (location)\n")
 		return errors.New("too many args")
 	}
-	//TODO(Mark): check the case sinsativity of area_name
-	url := config.LocationUrl + area_name[0]
+	//TODO(Mark): check the case sinsativity of args
+	url := config.LocationUrl + args[0]
 
 	fmt.Printf("url: %v\n", url)
 	data, err := cache.Get(url)
@@ -109,7 +109,7 @@ func commandExpore(config *configCommand, area_name []string) error {
 		return errIn
 	}
 
-	fmt.Printf("Exploring %v...\n", area_name[0])
+	fmt.Printf("Exploring %v...\n", args[0])
 	fmt.Println("Found Pokemon:")
 	for _, encounter := range pokemon.PokemonEncounters {
 		fmt.Printf(" - %v\n", encounter.Pokemon.Name)
@@ -117,12 +117,12 @@ func commandExpore(config *configCommand, area_name []string) error {
 	return nil
 }
 
-func commandCatch(config *configCommand, area_name []string) error {
-	if len(area_name) != 1 {
+func commandCatch(config *configCommand, args []string) error {
+	if len(args) != 1 {
 		fmt.Print("Catch has only one arg (pokemon name)\n")
 		return errors.New("too many args")
 	}
-	pokemonName := strings.ToLower(area_name[0])
+	pokemonName := strings.ToLower(args[0])
 	url := config.PokemonUrl + pokemonName
 	data, err := cache.Get(url)
 	var errIn error
@@ -150,6 +150,34 @@ func commandCatch(config *configCommand, area_name []string) error {
 		config.Pokedex[pokemonName] = pokemon
 	} else {
 		fmt.Printf("%v escaped!\n", pokemonName)
+	}
+
+	return nil
+}
+
+func commandInspect(config *configCommand, args []string) error {
+	if len(args) != 1 {
+		fmt.Println("you can only inspect one pokemon at a time.")
+		return errors.New("too many args")
+	}
+
+	pokemonName := strings.ToLower(args[0])
+	data, ok := config.Pokedex[pokemonName]
+	if !ok {
+		fmt.Println("you have not caught that pokemon")
+		return nil
+	}
+
+	fmt.Printf("Name: %v\nHeight: %v\n Weight: %v\nStats:\n",
+		data.Name, data.Height, data.Weight)
+
+	for _, stat := range data.Stats {
+		fmt.Printf("  -%v: %v\n", *stat.Stat.Name, stat.BaseStat)
+	}
+
+	fmt.Println("Types:")
+	for _, Type := range data.Types {
+		fmt.Printf("  - %v\n", Type.Type.Name)
 	}
 
 	return nil
@@ -210,6 +238,11 @@ func main() {
 			name:        "catch",
 			description: "try to catch the named pokemon",
 			callback:    commandCatch,
+		},
+		"inspect": {
+			name:        "inspect",
+			description: "inspect caught pokemon",
+			callback:    commandInspect,
 		},
 	}
 
