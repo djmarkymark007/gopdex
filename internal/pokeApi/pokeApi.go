@@ -364,7 +364,7 @@ type Pokemon struct {
 }
 
 // rename to a call to the api with a url
-func GetLocation(url string) ([]byte, error) {
+func CallApiByUrl(url string) ([]byte, error) {
 	res, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -20,6 +21,7 @@ type cliCommand struct {
 
 type configCommand struct {
 	Pokedex     map[string]pokeApi.Pokemon
+	PokemonUrl  string
 	LocationUrl string
 	Next        *string
 	Prevs       *string
@@ -86,33 +88,17 @@ func commandExpore(config *configCommand, area_name []string) error {
 		fmt.Print("Explore has only one arg (location)\n")
 		return errors.New("too many args")
 	}
+	//TODO(Mark): check the case sinsativity of area_name
 	url := config.LocationUrl + area_name[0]
-	data, err := getLocationPokemon(url)
-	if err != nil {
-		return err
-	}
 
-	fmt.Printf("Exploring %v...\n", area_name[0])
-	fmt.Println("Found Pokemon:")
-	for _, encounter := range data.PokemonEncounters {
-		fmt.Printf(" - %v\n", encounter.Pokemon.Name)
-	}
-	return nil
-}
-
-func commandCatch(config *configCommand, area_name []string) error {
-	return nil
-}
-
-func getLocationPokemon(url string) (pokeApi.LocationPokemon, error) {
-	fmt.Println(url)
+	fmt.Printf("url: %v\n", url)
 	data, err := cache.Get(url)
 	var errIn error
 	if !err {
-		data, errIn = pokeApi.GetLocation(url)
+		data, errIn = pokeApi.CallApiByUrl(url)
 		if errIn != nil {
 			fmt.Println("failed to get maps")
-			return pokeApi.LocationPokemon{}, errIn
+			return errIn
 		}
 	}
 
@@ -120,10 +106,53 @@ func getLocationPokemon(url string) (pokeApi.LocationPokemon, error) {
 	pokemon, errIn = pokeApi.JsonToLocationPokemon(data)
 	if errIn != nil {
 		fmt.Printf("failed to convert json to location pokemon struct %v\n", errIn.Error())
-		return pokeApi.LocationPokemon{}, errIn
+		return errIn
 	}
 
-	return pokemon, nil
+	fmt.Printf("Exploring %v...\n", area_name[0])
+	fmt.Println("Found Pokemon:")
+	for _, encounter := range pokemon.PokemonEncounters {
+		fmt.Printf(" - %v\n", encounter.Pokemon.Name)
+	}
+	return nil
+}
+
+func commandCatch(config *configCommand, area_name []string) error {
+	if len(area_name) != 1 {
+		fmt.Print("Catch has only one arg (pokemon name)\n")
+		return errors.New("too many args")
+	}
+	pokemonName := strings.ToLower(area_name[0])
+	url := config.PokemonUrl + pokemonName
+	data, err := cache.Get(url)
+	var errIn error
+	if !err {
+		data, errIn = pokeApi.CallApiByUrl(url)
+		if errIn != nil {
+			fmt.Printf("failed to get pokemon %v\n", pokemonName)
+			return errIn
+		}
+	}
+
+	var pokemon pokeApi.Pokemon
+	pokemon, errIn = pokeApi.JsonToPokemon(data)
+	if errIn != nil {
+		fmt.Printf("failed to convert json to pokemon data")
+		return errIn
+	}
+
+	// Try to catch
+
+	fmt.Printf("Throwing a Pokeball at %v...\n", pokemonName)
+	catchChanges := pokemon.BaseExperience
+	if rand.Intn(catchChanges) > (catchChanges - 30) {
+		fmt.Printf("%v was caught!\n", pokemonName)
+		config.Pokedex[pokemonName] = pokemon
+	} else {
+		fmt.Printf("%v escaped!\n", pokemonName)
+	}
+
+	return nil
 }
 
 func getLocation(url string) (pokeApi.Location, error) {
@@ -131,7 +160,7 @@ func getLocation(url string) (pokeApi.Location, error) {
 	data, err := cache.Get(url)
 	var errIn error
 	if !err {
-		data, errIn = pokeApi.GetLocation(url)
+		data, errIn = pokeApi.CallApiByUrl(url)
 		if errIn != nil {
 			fmt.Println("failed to get maps")
 			return pokeApi.Location{}, errIn
@@ -186,10 +215,11 @@ func main() {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	baseLocationUrl := "https://pokeapi.co/api/v2/location/"
-	LocationPokemonUrl := "https://pokeapi.co/api/v2/location-area/"
+
 	config := configCommand{
 		Pokedex:     make(map[string]pokeApi.Pokemon),
-		LocationUrl: LocationPokemonUrl,
+		PokemonUrl:  "https://pokeapi.co/api/v2/pokemon/",
+		LocationUrl: "https://pokeapi.co/api/v2/location-area/",
 		Next:        &baseLocationUrl,
 		Prevs:       nil,
 	}
