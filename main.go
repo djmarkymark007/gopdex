@@ -19,6 +19,7 @@ type cliCommand struct {
 }
 
 type configCommand struct {
+	Pokedex     map[string]pokeApi.Pokemon
 	LocationUrl string
 	Next        *string
 	Prevs       *string
@@ -91,9 +92,15 @@ func commandExpore(config *configCommand, area_name []string) error {
 		return err
 	}
 
+	fmt.Printf("Exploring %v...\n", area_name[0])
+	fmt.Println("Found Pokemon:")
 	for _, encounter := range data.PokemonEncounters {
-		fmt.Println(encounter.Pokemon.Name)
+		fmt.Printf(" - %v\n", encounter.Pokemon.Name)
 	}
+	return nil
+}
+
+func commandCatch(config *configCommand, area_name []string) error {
 	return nil
 }
 
@@ -170,12 +177,18 @@ func main() {
 			description: "get the pokemon for the location",
 			callback:    commandExpore,
 		},
+		"catch": {
+			name:        "catch",
+			description: "try to catch the named pokemon",
+			callback:    commandCatch,
+		},
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
 	baseLocationUrl := "https://pokeapi.co/api/v2/location/"
 	LocationPokemonUrl := "https://pokeapi.co/api/v2/location-area/"
 	config := configCommand{
+		Pokedex:     make(map[string]pokeApi.Pokemon),
 		LocationUrl: LocationPokemonUrl,
 		Next:        &baseLocationUrl,
 		Prevs:       nil,
