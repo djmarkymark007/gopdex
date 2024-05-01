@@ -147,6 +147,7 @@ func commandCatch(config *configCommand, args []string) error {
 	catchChanges := pokemon.BaseExperience
 	if rand.Intn(catchChanges) > (catchChanges - 30) {
 		fmt.Printf("%v was caught!\n", pokemonName)
+		fmt.Println("You may now inspect it with the inspect command.")
 		config.Pokedex[pokemonName] = pokemon
 	} else {
 		fmt.Printf("%v escaped!\n", pokemonName)
@@ -180,6 +181,14 @@ func commandInspect(config *configCommand, args []string) error {
 		fmt.Printf("  - %v\n", Type.Type.Name)
 	}
 
+	return nil
+}
+
+func commandPokedex(config *configCommand, _ []string) error {
+	fmt.Print("Your Pokedex:\n")
+	for key, _ := range config.Pokedex {
+		fmt.Printf(" - %v\n", key)
+	}
 	return nil
 }
 
@@ -243,6 +252,11 @@ func main() {
 			name:        "inspect",
 			description: "inspect caught pokemon",
 			callback:    commandInspect,
+		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "list the pokemon in your pokedex",
+			callback:    commandPokedex,
 		},
 	}
 
